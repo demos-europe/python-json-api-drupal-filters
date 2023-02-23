@@ -1,7 +1,5 @@
 from collections import defaultdict
 
-from .filter_validator import FilterValidator
-
 
 class FilterParser:
     class Keys:
@@ -49,13 +47,11 @@ class FilterParser:
         self.filter_dict = filter_dict
         self.condition_class = condition_class
         self.group_class = group_class
-        self.filter_validator = FilterValidator(self.filter_dict)
         self.grouped_conditions = defaultdict(dict)
         self.root_group = self.group_class(conjunction="AND")
         self.grouped_conditions[self.Keys.ROOT] = {"object": self.root_group}
 
     def parse_filter_data(self):
-        self.filter_validator.validate_filters()
         self._group_conditions()
         self._parse_conditions_and_groups()
         self._build_tree()
@@ -65,18 +61,18 @@ class FilterParser:
         if self.Keys.MEMBER_OF in group_or_condition:
             member_of = group_or_condition[self.Keys.MEMBER_OF]
             if member_of == self.Keys.ROOT:
-                raise KeyError(f"The 'memberOf' field MUST NOT use the root key '{self.Keys.ROOT}'.")
+                raise FilterError(f"The 'memberOf' field MUST NOT use the root key '{self.Keys.ROOT}'.")
             return member_of
         return self.Keys.ROOT
 
     def _group_conditions(self):
         if self.Keys.ROOT in self.filter_dict:
-            raise KeyError(f"The name of a group or condition MUST NOT be the root key '{self.Keys.ROOT}'.")
+            raise FilterError(f"The name of a group or condition MUST NOT be the root key '{self.Keys.ROOT}'.")
 
         for name, group_or_condition in self.filter_dict.items():
             if self.Keys.GROUP in group_or_condition:
                 group = group_or_condition[self.Keys.GROUP]
-                if self.Keys.CONJUNCTION not in group or not group[self.keys.CONJUNCTION]:
+                if self.Keys.CONJUNCTION not in group or not group[self.Keys.CONJUNCTION]:
                     continue
                 self.grouped_conditions[name].update({
                     "conjunction": group[self.Keys.CONJUNCTION],
@@ -92,8 +88,8 @@ class FilterParser:
                 else:
                     self.grouped_conditions[member_of]["conditions"] = [condition]
             else:
-                raise KeyError(f"Filter element {name} MUST contain either '{self.Keys.GROUP}' "
-                               f"or '{self.Keys.CONDITION}' as key.")
+                raise FilterError(f"Filter element {name} MUST contain either '{self.Keys.GROUP}' "
+                                  f"or '{self.Keys.CONDITION}' as key.")
 
     def _parse_conditions_and_groups(self):
         for name, group in self.grouped_conditions.items():
@@ -108,3 +104,7 @@ class FilterParser:
             if "member_of" in group:
                 parent_name = group["member_of"]
                 self.grouped_conditions[parent_name]["object"].members.append(group["object"])
+
+
+class FilterError(Exception):
+    pass
