@@ -73,22 +73,26 @@ class FilterParser:
         if self.Keys.ROOT in self.filter_dict:
             raise KeyError(f"The name of a group or condition MUST NOT be the root key '{self.Keys.ROOT}'.")
 
-        for key, value in self.filter_dict.items():
-            if self.Keys.GROUP in value:
-                group = value[self.Keys.GROUP]
-                self.grouped_conditions[key].update({
+        for name, group_or_condition in self.filter_dict.items():
+            if self.Keys.GROUP in group_or_condition:
+                group = group_or_condition[self.Keys.GROUP]
+                if self.Keys.CONJUNCTION not in group or not group[self.keys.CONJUNCTION]:
+                    continue
+                self.grouped_conditions[name].update({
                     "conjunction": group[self.Keys.CONJUNCTION],
                     "member_of": self._get_member_of(group)
                 })
-            elif self.Keys.CONDITION in value:
-                condition = value[self.Keys.CONDITION]
+            elif self.Keys.CONDITION in group_or_condition:
+                condition = group_or_condition[self.Keys.CONDITION]
                 member_of = self._get_member_of(condition)
+                if self.Keys.VALUE not in condition or not condition[self.Keys.VALUE]:
+                    continue
                 if "conditions" in self.grouped_conditions[member_of]:  # grouped_conditions is a defaultdict
                     self.grouped_conditions[member_of]["conditions"].append(condition)
                 else:
                     self.grouped_conditions[member_of]["conditions"] = [condition]
             else:
-                raise KeyError(f"Filter element {key} MUST contain either '{self.Keys.GROUP}' "
+                raise KeyError(f"Filter element {name} MUST contain either '{self.Keys.GROUP}' "
                                f"or '{self.Keys.CONDITION}' as key.")
 
     def _parse_conditions_and_groups(self):
