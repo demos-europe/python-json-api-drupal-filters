@@ -19,27 +19,27 @@ class FilterParser:
         :param filter_dict: a dictionary with the following structure:
         {
             ...
-            groupName1: {
-                group: {
-                    conjunction: AND
+            "groupName1": {
+                "group": {
+                    "conjunction": "AND"
                 }
             },
-            conditionName1: {
-                condition: {
-                    path: field1,
-                    operator: %3D,
-                    value: 42,
-                    memberOf: groupName1
+            "conditionName1": {
+                "condition": {
+                    "path": "field1",
+                    "operator": "%3D",
+                    "value": 42,
+                    "memberOf": "groupName1"
                 }
-            }
-            conditionName2: {
-                condition: {
-                    path: field2,
-                    operator: %3D,
-                    value: 23,
-                    memberOf: groupName1
+            },
+            "conditionName2": {
+                "condition": {
+                    "path": "field2",
+                    "operator": "%3D",
+                    "value": 23,
+                    "memberOf": "groupName1"
                 }
-            }
+            },
             ...
         }
         :param condition_class: A concrete implementation of the Condition class
