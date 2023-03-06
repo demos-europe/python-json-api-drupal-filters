@@ -1,5 +1,7 @@
 from collections import defaultdict
 
+from json_api_drupal_filters.filter_errors import *
+
 
 class FilterParser:
     class Keys:
@@ -17,27 +19,27 @@ class FilterParser:
         :param filter_dict: a dictionary with the following structure:
         {
             ...
-            groupName1: {
-                group: {
-                    conjunction: AND
+            "groupName1": {
+                "group": {
+                    "conjunction": "AND"
                 }
             },
-            conditionName1: {
-                condition: {
-                    path: field1,
-                    operator: %3D,
-                    value: 42,
-                    memberOf: groupName1
+            "conditionName1": {
+                "condition": {
+                    "path": "field1",
+                    "operator": "%3D",
+                    "value": 42,
+                    "memberOf": "groupName1"
                 }
-            }
-            conditionName2: {
-                condition: {
-                    path: field2,
-                    operator: %3D,
-                    value: 23,
-                    memberOf: groupName1
+            },
+            "conditionName2": {
+                "condition": {
+                    "path": "field2",
+                    "operator": "%3D",
+                    "value": 23,
+                    "memberOf": "groupName1"
                 }
-            }
+            },
             ...
         }
         :param condition_class: A concrete implementation of the Condition class
@@ -61,13 +63,13 @@ class FilterParser:
         if self.Keys.MEMBER_OF in group_or_condition:
             member_of = group_or_condition[self.Keys.MEMBER_OF]
             if member_of == self.Keys.ROOT:
-                raise FilterError(f"The 'memberOf' field MUST NOT use the root key '{self.Keys.ROOT}'.")
+                raise RootKeyUsedError(f"The 'memberOf' field MUST NOT use the root key '{self.Keys.ROOT}'.")
             return member_of
         return self.Keys.ROOT
 
     def _group_conditions(self):
         if self.Keys.ROOT in self.filter_dict:
-            raise FilterError(f"The name of a group or condition MUST NOT be the root key '{self.Keys.ROOT}'.")
+            raise RootKeyUsedError(f"The name of a group or condition MUST NOT be the root key '{self.Keys.ROOT}'.")
 
         for name, group_or_condition in self.filter_dict.items():
             if self.Keys.GROUP in group_or_condition:
@@ -88,8 +90,8 @@ class FilterParser:
                 else:
                     self.grouped_conditions[member_of]["conditions"] = [condition]
             else:
-                raise FilterError(f"Filter element {name} MUST contain either '{self.Keys.GROUP}' "
-                                  f"or '{self.Keys.CONDITION}' as key.")
+                raise NoGroupOrCondition(f"Filter element {name} MUST contain either '{self.Keys.GROUP}' "
+                                         f"or '{self.Keys.CONDITION}' as key.")
 
     def _parse_conditions_and_groups(self):
         for name, group in self.grouped_conditions.items():
@@ -104,7 +106,3 @@ class FilterParser:
             if "member_of" in group:
                 parent_name = group["member_of"]
                 self.grouped_conditions[parent_name]["object"].members.append(group["object"])
-
-
-class FilterError(Exception):
-    pass
