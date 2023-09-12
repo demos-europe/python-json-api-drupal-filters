@@ -30,7 +30,8 @@ class Group(FilterTreeElement):
     root group of a tree of filters will eventually evaluate all subgroups and conditions.
     """
 
-    def __init__(self, conjunction):
+    def __init__(self, conjunction, accumulator):
+        self.accumulator = accumulator
         if conjunction.upper() not in ["AND", "OR"]:
             raise KeyError("Conjunction MUST be either 'AND' or 'OR'.")
         self.members = []
