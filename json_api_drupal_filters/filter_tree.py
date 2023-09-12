@@ -29,6 +29,7 @@ class Group(FilterTreeElement):
     all members' evaluate methods based on the conjunction, such that calling evaluate() on the
     root group of a tree of filters will eventually evaluate all subgroups and conditions.
     """
+
     def __init__(self, conjunction):
         if conjunction.upper() not in ["AND", "OR"]:
             raise KeyError("Conjunction MUST be either 'AND' or 'OR'.")
