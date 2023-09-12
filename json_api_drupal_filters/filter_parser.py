@@ -63,13 +63,15 @@ class FilterParser:
         if self.Keys.MEMBER_OF in group_or_condition:
             member_of = group_or_condition[self.Keys.MEMBER_OF]
             if member_of == self.Keys.ROOT:
-                raise RootKeyUsedError(f"The 'memberOf' field MUST NOT use the root key '{self.Keys.ROOT}'.")
+                raise RootKeyUsedError(
+                    f"The 'memberOf' field MUST NOT use the root key '{self.Keys.ROOT}'.")
             return member_of
         return self.Keys.ROOT
 
     def _group_conditions(self):
         if self.Keys.ROOT in self.filter_dict:
-            raise RootKeyUsedError(f"The name of a group or condition MUST NOT be the root key '{self.Keys.ROOT}'.")
+            raise RootKeyUsedError(
+                f"The name of a group or condition MUST NOT be the root key '{self.Keys.ROOT}'.")
 
         for name, group_or_condition in self.filter_dict.items():
             if self.Keys.GROUP in group_or_condition:
@@ -85,24 +87,30 @@ class FilterParser:
                 member_of = self._get_member_of(condition)
                 if self.Keys.VALUE not in condition or not condition[self.Keys.VALUE]:
                     continue
-                if "conditions" in self.grouped_conditions[member_of]:  # grouped_conditions is a defaultdict
-                    self.grouped_conditions[member_of]["conditions"].append(condition)
+                # grouped_conditions is a defaultdict
+                if "conditions" in self.grouped_conditions[member_of]:
+                    self.grouped_conditions[member_of]["conditions"].append(
+                        condition)
                 else:
-                    self.grouped_conditions[member_of]["conditions"] = [condition]
+                    self.grouped_conditions[member_of]["conditions"] = [
+                        condition]
             else:
                 raise NoGroupOrCondition(f"Filter element {name} MUST contain either '{self.Keys.GROUP}' "
                                          f"or '{self.Keys.CONDITION}' as key.")
 
     def _parse_conditions_and_groups(self):
         for name, group in self.grouped_conditions.items():
-            group_object = self.root_group if name == self.Keys.ROOT else self.group_class(group["conjunction"])
+            group_object = self.root_group if name == self.Keys.ROOT else self.group_class(
+                group["conjunction"])
             if "conditions" in group:
                 for condition in group["conditions"]:
-                    group_object.members.append(self.condition_class(**condition))
+                    group_object.members.append(
+                        self.condition_class(**condition))
             group["object"] = group_object
 
     def _build_tree(self):
         for name, group in self.grouped_conditions.items():
             if "member_of" in group:
                 parent_name = group["member_of"]
-                self.grouped_conditions[parent_name]["object"].members.append(group["object"])
+                self.grouped_conditions[parent_name]["object"].members.append(
+                    group["object"])
