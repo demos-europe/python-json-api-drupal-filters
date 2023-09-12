@@ -14,7 +14,9 @@ class FilterParser:
         ROOT = "@root"
         VALUE = "value"
 
-    def __init__(self, filter_dict, condition_class, group_class, accumulator=None):
+    accumulator = None
+
+    def __init__(self, filter_dict, condition_class, group_class):
         """
         :param filter_dict: a dictionary with the following structure:
         {
@@ -53,7 +55,6 @@ class FilterParser:
         self.grouped_conditions = defaultdict(dict)
         self.root_group = self.group_class(conjunction="AND")
         self.grouped_conditions[self.Keys.ROOT] = {"object": self.root_group}
-        self.accumulator = accumulator
 
     def parse_filter_data(self):
         self._group_conditions()
