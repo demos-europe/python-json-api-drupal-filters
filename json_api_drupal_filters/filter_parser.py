@@ -1,9 +1,15 @@
 from collections import defaultdict
+from typing import TypeVar, Generic
 
 from json_api_drupal_filters.filter_errors import *
+from json_api_drupal_filters.filter_tree import FilterTreeElement, Group, Condition
+
+ParsingContext = TypeVar('ParsingContext')
 
 
-class FilterParser:
+class FilterParser(Generic[ParsingContext]):
+    context: ParsingContext
+
     class Keys:
         CONDITION = "condition"
         CONJUNCTION = "conjunction"
@@ -14,7 +20,13 @@ class FilterParser:
         ROOT = "@root"
         VALUE = "value"
 
-    def __init__(self, filter_dict, condition_class, group_class):
+    def __init__(
+        self,
+        filter_dict: dict,
+        condition_class: type[Condition[ParsingContext]],
+        group_class: type[Group[ParsingContext]],
+        context: ParsingContext = None
+    ):
         """
         :param filter_dict: a dictionary with the following structure:
         {
@@ -46,6 +58,7 @@ class FilterParser:
         :param group_class: A concrete implementation of the Group class
         """
 
+        self.context = context or {}
         self.filter_dict = filter_dict
         self.condition_class = condition_class
         self.group_class = group_class

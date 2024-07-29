@@ -1,13 +1,18 @@
-from abc import ABC, abstractmethod
+from abc import ABC, abstractmethod, ABCMeta
+from typing import Generic, TypeVar, Literal, Protocol
+
+Context = TypeVar("Context", bound=dict)
 
 
-class FilterTreeElement(ABC):
+class FilterTreeElement(Protocol[Context], metaclass=ABCMeta):
+    context: Context
+
     @abstractmethod
     def evaluate(self):
-        pass
+        ...
 
 
-class Condition(FilterTreeElement):
+class Condition(FilterTreeElement[Context], metaclass=ABCMeta):
     """
     Concrete implementations of the Condition class should derive from this class.
     The evaluate method should return a string or object that can be interpreted by
@@ -21,7 +26,7 @@ class Condition(FilterTreeElement):
         self.value = kwargs["value"]
 
 
-class Group(FilterTreeElement):
+class Group(FilterTreeElement[Context]):
     """
     Concrete implementations of the Group class should derive from this class.
     The members list will include other FilterTreeElement objects (Conditions or other Groups).
@@ -29,8 +34,8 @@ class Group(FilterTreeElement):
     all members' evaluate methods based on the conjunction, such that calling evaluate() on the
     root group of a tree of filters will eventually evaluate all subgroups and conditions.
     """
-    def __init__(self, conjunction):
-        if conjunction.upper() not in ["AND", "OR"]:
-            raise KeyError("Conjunction MUST be either 'AND' or 'OR'.")
+    members: list[FilterTreeElement[Context]] = []
+
+    def __init__(self, conjunction: Literal["AND", "OR"]):
         self.members = []
         self.conjunction = conjunction.upper()
