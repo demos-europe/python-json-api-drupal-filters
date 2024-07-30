@@ -1,18 +1,16 @@
 from abc import ABC, abstractmethod, ABCMeta
 from typing import Generic, TypeVar, Literal, Protocol
 
-Context = TypeVar("Context", bound=dict)
+Context = TypeVar("Context", contravariant=True)
 
 
-class FilterTreeElement(Protocol[Context], metaclass=ABCMeta):
-    context: Context
+class FilterTreeElement(Protocol[Context]):
 
-    @abstractmethod
-    def evaluate(self):
+    def evaluate(self, context: Context):
         ...
 
 
-class Condition(FilterTreeElement[Context], metaclass=ABCMeta):
+class Condition(FilterTreeElement[Context]):
     """
     Concrete implementations of the Condition class should derive from this class.
     The evaluate method should return a string or object that can be interpreted by
