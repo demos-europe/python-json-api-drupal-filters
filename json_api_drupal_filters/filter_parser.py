@@ -1,9 +1,15 @@
 from collections import defaultdict
+from typing import TypeVar, Generic
 
-from json_api_drupal_filters.filter_errors import *
+from json_api_drupal_filters.filter_errors import RootKeyUsedError, NoGroupOrCondition
+from json_api_drupal_filters.filter_tree import Group, Condition
+
+ParsingContext = TypeVar('ParsingContext')
 
 
-class FilterParser:
+class FilterParser(Generic[ParsingContext]):
+    context: ParsingContext
+
     class Keys:
         CONDITION = "condition"
         CONJUNCTION = "conjunction"
@@ -14,7 +20,13 @@ class FilterParser:
         ROOT = "@root"
         VALUE = "value"
 
-    def __init__(self, filter_dict, condition_class, group_class):
+    def __init__(
+        self,
+        filter_dict: dict,
+        condition_class: type[Condition[ParsingContext]],
+        group_class: type[Group[ParsingContext]],
+        context: ParsingContext
+    ):
         """
         :param filter_dict: a dictionary with the following structure:
         {
@@ -46,10 +58,11 @@ class FilterParser:
         :param group_class: A concrete implementation of the Group class
         """
 
+        self.context = context
         self.filter_dict = filter_dict
         self.condition_class = condition_class
         self.group_class = group_class
-        self.grouped_conditions = defaultdict(dict)
+        self.grouped_conditions: dict = defaultdict(dict)
         self.root_group = self.group_class(conjunction="AND")
         self.grouped_conditions[self.Keys.ROOT] = {"object": self.root_group}
 
@@ -57,7 +70,7 @@ class FilterParser:
         self._group_conditions()
         self._parse_conditions_and_groups()
         self._build_tree()
-        return self.root_group.evaluate()
+        return self.root_group.evaluate(context=self.context)
 
     def _get_member_of(self, group_or_condition):
         if self.Keys.MEMBER_OF in group_or_condition:

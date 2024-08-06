@@ -1,24 +1,39 @@
+from types import NoneType
+from typing import TypedDict
+
 import pytest
 
 from json_api_drupal_filters.filter_parser import FilterParser
 from json_api_drupal_filters.filter_tree import Condition, Group
-from json_api_drupal_filters.filter_errors import *
+from json_api_drupal_filters.filter_errors import RootKeyUsedError, NoGroupOrCondition
+
+
+class ExampleContext(TypedDict):
+    paths: list[str]
+    operators: dict[str, list[str]]
 
 
 @pytest.fixture()
-def condition_class():
+def condition_class() -> type[Condition]:
     class TestCondition(Condition):
-        def evaluate(self):
+        def evaluate(self, _):
             return f"{self.path} {self.operator} {self.value}"
+
     return TestCondition
 
 
 @pytest.fixture()
-def group_class():
+def group_class() -> type[Group]:
     class TestGroup(Group):
-        def evaluate(self):
-            return "(" + f" {self.conjunction} ".join([member.evaluate() for member in self.members]) + ")"
+        def evaluate(self, context):
+            return "(" + f" {self.conjunction} ".join([member.evaluate(context) for member in self.members]) + ")"
+
     return TestGroup
+
+
+@pytest.fixture()
+def example_context() -> ExampleContext:
+    return ExampleContext(paths=["name"], operators={"name": ["=", "~"]})
 
 
 @pytest.fixture()
@@ -66,7 +81,7 @@ def valid_filter_dict():
     return filter_dict
 
 
-def test_root_key_used_in_member_of(condition_class, group_class):
+def test_root_key_used_in_member_of(condition_class, group_class, example_context):
     filter_dict = {
         "TestGroup": {
             FilterParser.Keys.GROUP: {
@@ -76,11 +91,11 @@ def test_root_key_used_in_member_of(condition_class, group_class):
         },
     }
     with pytest.raises(RootKeyUsedError):
-        filter_parser = FilterParser(filter_dict, condition_class, group_class)
+        filter_parser = FilterParser(filter_dict, condition_class, group_class, example_context)
         filter_parser.parse_filter_data()
 
 
-def test_root_key_used_in_name(condition_class, group_class):
+def test_root_key_used_in_name(condition_class, group_class, example_context):
     filter_dict = {
         "TestCondition": {
             FilterParser.Keys.CONDITION: {
@@ -96,11 +111,11 @@ def test_root_key_used_in_name(condition_class, group_class):
         }
     }
     with pytest.raises(RootKeyUsedError):
-        filter_parser = FilterParser(filter_dict, condition_class, group_class)
+        filter_parser = FilterParser(filter_dict, condition_class, group_class, example_context)
         filter_parser.parse_filter_data()
 
 
-def test_no_group_or_condition(condition_class, group_class):
+def test_no_group_or_condition(condition_class, group_class, example_context):
     filter_dict = {
         "TestThingy": {
             "Thingy": {
@@ -110,12 +125,12 @@ def test_no_group_or_condition(condition_class, group_class):
         }
     }
     with pytest.raises(NoGroupOrCondition):
-        filter_parser = FilterParser(filter_dict, condition_class, group_class)
+        filter_parser = FilterParser(filter_dict, condition_class, group_class, example_context)
         filter_parser.parse_filter_data()
 
 
-def test_group_conditions(condition_class, group_class, valid_filter_dict):
-    filter_parser = FilterParser(valid_filter_dict, condition_class, group_class)
+def test_group_conditions(condition_class, group_class, valid_filter_dict, example_context):
+    filter_parser = FilterParser(valid_filter_dict, condition_class, group_class, example_context)
     filter_parser._group_conditions()
     assert len(filter_parser.grouped_conditions) == 3
 
@@ -128,8 +143,8 @@ def test_group_conditions(condition_class, group_class, valid_filter_dict):
     assert len(filter_parser.grouped_conditions["OtherTestGroup"]["conditions"]) == 1
 
 
-def test_tree(condition_class, group_class, valid_filter_dict):
-    filter_parser = FilterParser(valid_filter_dict, condition_class, group_class)
+def test_tree(condition_class, group_class, valid_filter_dict, example_context):
+    filter_parser = FilterParser(valid_filter_dict, condition_class, group_class, example_context)
     result = filter_parser.parse_filter_data()
     evaluated_root_group = "(YetAnotherTestField = bar AND (TestField = 42 OR DifferentTestField = 23 OR (OtherTestField = foo)))"
     assert result == evaluated_root_group
